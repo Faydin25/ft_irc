@@ -1,6 +1,7 @@
+#pragma once
 
-#ifndef FT_IRC_DATA_H
-#define FT_IRC_DATA_H
+#define BUFFER_SIZE 1024
+#define MAX_CLIENTS 10
 
 #include <iostream>
 #include <sys/socket.h> // socket fonksiyonu için gereklidir
@@ -12,8 +13,15 @@ class Data
 	public:
 		int port;
 		std::string password;
+		void setServerFD(uint32_t fd);//!!
 	private:
-		;
+		uint32_t serverFD;
 };
 
-#endif //FT_IRC_DATA_H
+class Server
+{
+    public:
+        Server(int sockfd, int port, std::string password);
+        ~Server();
+    private:
+};
