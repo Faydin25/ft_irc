@@ -13,10 +13,8 @@ void ft_routine(std::string _port, std::string _password)
 	data.port = std::stoi(_port);
 	data.password = _password;
 
-
 	int server_socket, client_socket[MAX_CLIENTS], active_clients = 0;
 	char buffer[BUFFER_SIZE];
-
 
 	//Create Socket
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -28,13 +26,6 @@ void ft_routine(std::string _port, std::string _password)
 
     Server server(sockfd, data.port, data.password);
 
-//-------------------------------------------------------------------------------------------------
-	//Listen for imcoming connections
-	if (listen(sockfd, MAX_CLIENTS) < 0)
-	{
-		perror("Listen Failed");
-		exit(EXIT_FAILURE);
-	}
 }
 
 int main(int ac, char *av[])
