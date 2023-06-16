@@ -1,36 +1,66 @@
-#include "Data.h"
+#include "Server.hpp"
 
-Server::Server(int sockfd, int port, std::string password) {
-    //Set Server Address
-    struct sockaddr_in server_address, client_address;
-    this->port = (uint32_t)port;
-    this->sockFd = (uint32_t)sockfd;
-    this->password = password;
+Server::Server()
+{}
 
-    //Bind Server Socket
-    if (bind(sockfd, (struct sockaddr*)&server_address, sizeof(server_address)) < 0)
-    {
-        perror("Bind Failed");
-        exit (EXIT_FAILURE);
-    }
-    server_address.sin_family = AF_INET;//AF_INET APv4.
-    server_address.sin_addr.s_addr = INADDR_ANY;
-    server_address.sin_port = htons(port);
-
-    //Listen for incoming connections
-    if (listen(sockfd, MAX_CLIENTS) < 0)
-    {
-        perror("Listen Failed");
-        exit(EXIT_FAILURE);
-    }
-    std::cout << "port: " << this->port << std::endl;
-    std::cout << "sockFd: " << this->sockFd << std::endl;
-    std::cout << "password: " << this->password << std::endl;
+Server::~Server()
+{
+    close(this->socketFd);
 }
 
-Server::~Server() {};
-
-uint32_t Server::getServerFD()
+Server::Server(int port, char *paswd)
 {
-    return this->sockFd;
+    this->socketFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (this->socketFd == -1)
+        std::cerr << "Failed to create socket" << std::endl;
+    this->hostName = "localhost";
+    this->paswd = paswd;
+    this->socketPort = port;
+    std::cout << "Socket created" << std::endl;
+    struct sockaddr_in serverAddress;
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1"); //bind to any available
+    serverAddress.sin_port = htons(this->socketPort);
+    try{
+        if (bind(this->socketFd, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) == -1)
+            std::cerr << "Failed to bind socket" << std::endl;
+    }
+    catch(const std::exception& e){ //farklı bir port girilmeli
+        std::cerr << e.what() << '\n';
+    }
+    if (listen(this->socketFd, this->userCount) == -1) //5 değişecektir
+        std::cerr << "Failed to listen socket" << std::endl;
+
+    std::cout << "Socket listening" << std::endl;
+}
+
+std::vector<std::string> Server::getUsers()
+{
+    return _userList;
+}
+
+std::map<std::string, std::vector<std::string> > Server::getChannels()
+{
+    return _channels;
+}
+
+std::vector<std::string> Server::getChannelUsers(std::string channelName)
+{
+    if(this->_channels.find(channelName) != this->_channels.end())
+        return this->_channels[channelName];
+    else
+        return std::vector<std::string>();
+}
+
+int Server::checkPasswd(char *paswd)
+{
+    if(strcmp(this->paswd.c_str(), paswd) == 0)
+        return 1;
+    else
+        return 0;
+}
+
+int Server::getSocketFd()
+{
+    return this->socketFd;
 }

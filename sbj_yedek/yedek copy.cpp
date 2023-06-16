@@ -1,18 +1,80 @@
-#include "Server.hpp"
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <iostream>
+#include <cstring>
+#include <poll.h>
+#include <vector>
+#include <unistd.h>
 
-int main(int argc, char **argv)
+void parser(char *buffer)
 {
-    if (argc != 3)
-        return 1;
-    
-    Server server(std::stoi(argv[1]), argv[2]);
+    char *token = strtok(buffer, " ");
+    while (token != NULL)
+    {
+        std::cout << token << std::endl;
+        token = strtok(NULL, " ");
+    }
+}
 
+int main()
+{
+    int sockfd;
+
+    /*###################### SOCKET CREATION ######################*/
+
+
+    //can use try except
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1)
+    {
+        std::cerr << "Failed to create socket" << std::endl;
+        return (1);
+    }
+
+    std::cout << "Socket created" << std::endl;
+    
+    /*############################################################*/
+
+    /*######################## BINDING SOCKET ######################*/
+
+    struct sockaddr_in serverAddress;
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1"); //bind to any available
+    serverAddress.sin_port = htons(4241);  /* <<<<<------------------- BURDA */
+    try{
+        if (bind(sockfd, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) == -1)
+        {
+            std::cerr << "Failed to bind socket" << std::endl;
+            return (1);
+        }
+    }
+    catch(const std::exception& e){ //farklı bir port girilmeli
+        std::cerr << e.what() << '\n';
+    }
+    /*##########################################################*/
+
+    
+    /*######################## LISTENING SOCKET ######################*/
+
+    if (listen(sockfd, 5) == -1)
+    {
+        std::cerr << "Failed to listen socket" << std::endl;
+        return (1);
+    }
+
+    std::cout << "Socket listening" << std::endl;
+    /*##########################################################*/
+
+    
+    /*######################## ACCEPTING SOCKET ######################*/
     std::vector<struct pollfd> fds;
     struct pollfd listeningSocket;
-    listeningSocket.fd = server.getSocketFd();
+    listeningSocket.fd = sockfd;
     listeningSocket.events = POLLIN; // Wait for incoming data
     fds.push_back(listeningSocket);
-    
+
     // Main event loop
     while (true) {
         // Wait for events on multiple file descriptors
@@ -23,15 +85,17 @@ int main(int argc, char **argv)
 
         // Process events
         for (size_t i = 0; i < fds.size(); ++i) {
-            send(fds[0].fd, "Password: ", 10, 0);
+    
+           
             if (fds[i].revents & POLLIN) { //revents: event yok, input event
                 // Listening socket has an incoming connection
-                if (fds[i].fd == server.getSocketFd()) {
+                if (fds[i].fd == sockfd) {
+                    std::cout << "sock: "<< sockfd << "client:" << fds[i].fd << std::endl;
                     struct sockaddr_in clientAddress;
                     socklen_t clientAddressLength = sizeof(clientAddress);
-                    int clientSockfd = accept(server.getSocketFd(), (struct sockaddr*)&clientAddress, &clientAddressLength);
+                    int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddress, &clientAddressLength);
                     if (clientSockfd == -1) {
-                        std::cerr << "Failed to accept client connection" << std::endl;
+                        std::cerr << "AAAled to accept client connection" << std::endl;
                         continue; // Continue with the next event
                     }
 
@@ -45,6 +109,7 @@ int main(int argc, char **argv)
                 }
                 // Client socket has incoming data
                 else {
+                    std::cout << "sock: "<< sockfd << "client:" << fds[i].fd << std::endl;
                     char buffer [1024];
                     ssize_t bytesRead = recv(fds[i].fd, buffer, sizeof(buffer), 0);
                     if (fds[i].fd == 5 && (strcmp(buffer, "/channel4 hello world\n") == 0))
@@ -66,10 +131,12 @@ int main(int argc, char **argv)
                         --i;
                         continue; // Continue with the next event
                         }
-                    std::cout << "MSG:   " << buffer << std::flush;//flush ne amk ya, bi sike yaramıo?
+                    parser(buffer);
                     }
                 }
-           }
+           } 
         }
+    // Close the client socket
+    close(sockfd);
     return (0);
 }
