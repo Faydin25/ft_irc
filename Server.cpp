@@ -1,7 +1,9 @@
 #include "Server.hpp"
+#include "Client.hpp"
 
 Server::Server()
-{}
+{
+}
 
 Server::~Server()
 {
@@ -48,8 +50,68 @@ int Server::ParsCmd_nextParameter(std::string input)
     return (0);
 }
 
+int Server::incomingMessage(Server *server, int i)
+{
+        std::string* buffer = new std::string();
+        ssize_t bytesRead = recv(server->users[i].fd, static_cast<void*>(&buffer), sizeof(buffer), 0);
+        if (bytesRead == -1) {
+            std::cerr << "Failed to receive data from client" << std::endl;
+        }
+        //std::cout << "İncomingMessage():   " << &buffer << std::endl;
+        //parsera yönlendir.
+    return (bytesRead);
+}
+
+Client Server::whenUserFirstJoin(Server *server, int fd)
+{
+    (void) server;
+    Client client;
+    char buffer [1024];
+    ssize_t bytesRead;
+
+    send(fd, "\npassword : ", 13, 0); 
+    bytesRead = recv(fd, buffer, sizeof(buffer), 0);
+    client.joinServerIdentity(&client,buffer);
+
+    send(fd, "\nusrname : ", 12, 0);
+    bytesRead = recv(fd, buffer, sizeof(buffer), 0);
+    client.joinServerIdentity(&client,buffer);
+
+    send(fd, "\nnickname : ", 13, 0);
+    bytesRead = recv(fd, buffer, sizeof(buffer), 0);
+    client.joinServerIdentity(&client,buffer);
+
+    buffer[0] = 0;
+    std::cout << client.username << std::endl;              //CLİENTİN İÇİ OÇUİ
+    return (client);
+}
+
+int Server::incomingConnection(Server *server)
+{
+    struct sockaddr_in clientAddress;
+    socklen_t clientAddressLength = sizeof(clientAddress);
+    struct pollfd clientSocket;
+    clientSocket.fd = accept(getSocketFd(), (struct sockaddr*)&clientAddress, &clientAddressLength);
+    if (clientSocket.fd == -1) {
+        std::cerr << "Failed to accept client connection" << std::endl;
+        //continue; //-1 ise sıçıyoruz //client disconnect e göndeririz. 
+    }
+    clientSocket.events = POLLIN;                                        
+    server->users.push_back(clientSocket);
+    std::cout << "Accepted client connection" << std::endl;
+    send(clientSocket.fd, "Welcome to IRC Server Please Sign İn", 38, 0);
+    server->clients.push_back(server->whenUserFirstJoin(server,clientSocket.fd));
+    for (auto x : server->clients)
+        std::cout << x.nickname << std::endl;
+    //eğer user yaratıldıysa gerekli structlara atama yap. alt satırdaki gibi                                                   //binam burda kaldı
+    //userMap[clientSocket] = client; //piltan da burda kalmış - map yapısı hata veriyo piltan. çözemedim. tutulmuyo sanırım pollfd ler mapte.
+
+    return (0);
+}
+
 Server::Server(int port, char *paswd)
 {
+    this->index = 0;
     this->socketFd = socket(AF_INET, SOCK_STREAM, 0);
     if (this->socketFd == -1)
         std::cerr << "Failed to create socket" << std::endl;
@@ -93,4 +155,12 @@ int Server::checkPasswd(char *paswd)
 int Server::getSocketFd()
 {
     return this->socketFd;
+}
+
+int Server::clientDisconnect(Server *server, int i)//cmd quit
+{
+    std::cout << "Client disconnected" << std::endl;
+    close(server->users[i].fd); // kapatılıp erase ile pollfd den siliniyor.
+    server->users.erase(server->users.begin() + i);
+    return -1;
 }

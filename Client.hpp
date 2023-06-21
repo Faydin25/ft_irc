@@ -19,34 +19,41 @@
 
 #include "Server.hpp"
 
+
 class Client : public Server//Server'da benim bir  tane kullanıcıların tutulduğu bir vector almam lazım(referansı ile!)
 {
     public:
         Client();
         ~Client();
 
-        std::map<std::string, std::vector<Client> > _channels;//First->Channels Second->Users
         int             passwdcontrol;//
         int             clientSockfd;//
         std::string     nickname;//
         std::string     username;//
         int             client_id;
+        int             index;
         int             isOperator;
         struct sockaddr_in clientAddress;
         socklen_t clientAddressLength;
+        std::vector<std::string> myChannels;
 
-        std::map<std::string, std::vector<Client> > getChannels();
-        std::vector<Client> getChannelUsers(std::string channelName);
-        void sendMessageToChannel(Client user, std::string channelName);
-        int joinServerIdentity(std::string str);
-        void createChannel(std::string channel_name, Client &user);
+        void cmdQuit( Client user, std::string cmd, std::string NextParameter);
+        int joinServerIdentity(Client *client, std::string str);
+        /*
         void Client::cmdKick(Client user, std::string cmd, std::string NextParameter);
         void FindCommands(Client user, std::string cmd, std::string NextParameter);
         void cmdPrivmsg( Client user, std::string cmd, std::string NextParameter);
         void cmdNotice( Client user, std::string cmd, std::string NextParameter);
         void cmdJoin( Client user, std::string cmd, std::string NextParameter);
-        void cmdQuit( Client user, std::string cmd, std::string NextParameter);
-        void cmdPing( Client user, std::string cmd, std::string NextParameter);
+      
+        void cmdPing( Client user, std::string cmd, std::string NextParameter);*/
 };
+
+struct s_global
+{
+    std::map<std::string, std::vector<Client> > _channels;//First->Channels Second->Users
+    std::string topic;
+};
+extern s_global global;
 
 #endif

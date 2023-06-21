@@ -1,6 +1,6 @@
 NAME = irc
 CC = c++
-CPPFLAGS = -Wall -Wextra -Werror -std=c++98
+CPPFLAGS = -Wall -Wextra -Werror -std=c++11 -g
 SRC = main.cpp Server.cpp Client.cpp
 OBJ = $(SRC:.cpp=.o)
 
